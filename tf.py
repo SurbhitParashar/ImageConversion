@@ -20,7 +20,7 @@ eyebrow_type_mapping = {
     "FROWN_NATURAL": pa.EyebrowType.FROWN_NATURAL,
     "UP_DOWN_NATURAL": pa.EyebrowType.UP_DOWN_NATURAL,
     "UP_DOWN": pa.EyebrowType.UP_DOWN,
-    "FLAT_NATURAL": pa.EyebrowType.FLAT_NATURAL,
+    "FLAT_NATURAL": pa.EyebrowType.FLAT_NATURAL
 }
 
 def analyze_expression_and_map_eyebrows(image_path):
@@ -31,19 +31,15 @@ def analyze_expression_and_map_eyebrows(image_path):
         print(f"Detected emotion: {emotion}")
 
         # Map the detected emotion to an eyebrow type
-        eyebrow_key = emotion_to_eyebrow_type.get(emotion.lower(), "DEFAULT_NATURAL")
-        print(f"Mapped eyebrow key: {eyebrow_key}")
-        eyebrow_type = eyebrow_type_mapping.get(eyebrow_key, pa.EyebrowType.DEFAULT_NATURAL)  # Use the default value if the key is not found in the mapping[eyebrow_key]
-        print(eyebrow_type)
-        # Return the `pa.EyebrowType` value
-        return eyebrow_type
+        eyebrow_key = emotion_to_eyebrow_type.get(emotion, "DEFAULT_NATURAL")
+        return eyebrow_type_mapping.get(eyebrow_key, pa.EyebrowType.DEFAULT_NATURAL)
+    
     except Exception as e:
         print(f"Error in analyzing the image: {e}")
         return pa.EyebrowType.DEFAULT_NATURAL  # Return a default eyebrow type in case of error
 
 # Load an image and detect facial expression
 image_path = "refined_image.png"  # Replace with your image path
-eyebrow_type = analyze_expression_and_map_eyebrows(image_path)
+chosen_eyebrow_type = analyze_expression_and_map_eyebrows(image_path)
 
-# Print the result in the desired format
-print(f"Most suitable eyebrow type: {eyebrow_type}")
+

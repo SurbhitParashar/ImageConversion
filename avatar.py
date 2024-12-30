@@ -130,7 +130,7 @@ skin_color_mapping = {
 
 chosen_skin_color = skin_color_mapping.get(closest_color_name, pa.SkinColor.LIGHT) 
 
-avatar.render_png_file("avt.png")
+# avatar.render_png_file("avt.png")
 
 # hair color code
 import cv2
@@ -329,7 +329,7 @@ mouth_mapping = {
 }
 
 chosen_mouth_type = mouth_mapping.get(mouth_type, pa.MouthType.DEFAULT)
-
+# print("mouth typw",chosen_mouth_type)
 # hair type code
 
 import random
@@ -513,6 +513,71 @@ chosen_eye_type = eye_type_mapping[selected_eye_type_name]
 # print(chosen_eye_type)
 
 # eyebrow type
+ # Make sure this is the correct import for `pa.EyebrowType`
+
+# Define eyebrow mapping based on emotions
+emotion_to_eyebrow_type = {
+    "neutral": "DEFAULT_NATURAL",
+    "happy": "RAISED_EXCITED",
+    "sad": "FROWN_NATURAL",
+    "angry": "UP_DOWN_NATURAL",
+    "surprise": "RAISED_EXCITED",
+    "fear": "UP_DOWN",
+    "disgust": "FLAT_NATURAL",
+}
+
+# Define the corresponding `pa.EyebrowType` mapping
+eyebrow_type_mapping = {
+    "DEFAULT_NATURAL": pa.EyebrowType.DEFAULT_NATURAL,
+    "RAISED_EXCITED": pa.EyebrowType.RAISED_EXCITED,
+    "FROWN_NATURAL": pa.EyebrowType.FROWN_NATURAL,
+    "UP_DOWN_NATURAL": pa.EyebrowType.UP_DOWN_NATURAL,
+    "UP_DOWN": pa.EyebrowType.UP_DOWN,
+    "FLAT_NATURAL": pa.EyebrowType.FLAT_NATURAL
+}
+
+def analyze_expression_and_map_eyebrows(image_path):
+    try:
+        # Analyze facial expression using DeepFace
+        analysis = DeepFace.analyze(img_path=image_path, actions=['emotion'], enforce_detection=False)
+        emotion = analysis[0]['dominant_emotion']
+        print(f"Detected emotion: {emotion}")
+
+        # Map the detected emotion to an eyebrow type
+        eyebrow_key = emotion_to_eyebrow_type.get(emotion, "DEFAULT_NATURAL")
+        return eyebrow_type_mapping.get(eyebrow_key, pa.EyebrowType.DEFAULT_NATURAL)
+    
+    except Exception as e:
+        print(f"Error in analyzing the image: {e}")
+        return pa.EyebrowType.DEFAULT_NATURAL  # Return a default eyebrow type in case of error
+
+# Load an image and detect facial expression
+image_path = "refined_image.png"  # Replace with your image path
+chosen_eyebrow_type = analyze_expression_and_map_eyebrows(image_path)
+
+accesories_choice=["DEFAULT",
+"KURT",
+"PRESCRIPTION_01",
+"PRESCRIPTION_02",
+"ROUND",
+"SUNGLASSES",
+"WAYFARERS"
+]
+accesories_type=random.choice(accesories_choice)
+
+accesories_type_map={
+    "DEFAULT":pa.AccessoriesType.DEFAULT,
+    "KURT":pa.AccessoriesType.KURT,
+    "PRESCRIPTION_01":pa.AccessoriesType.PRESCRIPTION_01,
+    "PRESCRIPTION_02":pa.AccessoriesType.PRESCRIPTION_02,
+    "ROUND":pa.AccessoriesType.ROUND,
+    "SUNGLASSES":pa.AccessoriesType.SUNGLASSES,
+    "WAYFARERS":pa.AccessoriesType.WAYFARERS
+}
+
+chosen_accesories_type=accesories_type_map.get(accesories_type,pa.AccessoriesType.DEFAULT)
+
+
 
 # Create an avatar instance
 avatar = pa.PyAvataaar(
@@ -523,10 +588,8 @@ avatar = pa.PyAvataaar(
     mouth_type=chosen_mouth_type,
     eye_type=chosen_eye_type,
     eyebrow_type=chosen_eyebrow_type,
-    # facial_hair_color=pa.FacialHairType.BEARD_LIGHT,
-    # hat_color=pa.TopType.LONG_HAIR_BIG_HAIR,
     nose_type=pa.NoseType.DEFAULT,
-    # accessories_type=pa.AccessoriesType.PRESCRIPTION_01,
+    accessories_type=chosen_accesories_type,
     # clothe_shirt_type=pa.ClotheShirtType.DEFAULT,
     # clothe_type=pa.clothe_type.GRAPHIC_SHIRT,
     # clothe_color=pa.clothe_color.PINK,
