@@ -63,6 +63,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 For any inquiries, feel free to reach out:
 
-- **Author**: Surbhit Parashar
+- **Author**: Yash Yogi, Shahnaj Khan, Yogesh Kumawat, Surbhit Parashar
 - **GitHub**: [SurbhitParashar](https://github.com/SurbhitParashar)
 - **Email**: surbhitparashar7@gmail.com
