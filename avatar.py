@@ -11,9 +11,13 @@ import cv2 as cv
 from matplotlib import pyplot as plt
 import os
 from deepface import DeepFace
+from sklearn.cluster import KMeans
+from scipy.spatial import distance
+
+
 
 # Load the original image
-img = cv.imread('image.png')
+img = cv.imread("image_female.png")
 assert img is not None, "File could not be read, check with os.path.exists()"
 
 # Initialize mask and models
@@ -63,32 +67,46 @@ if os.path.exists('labeled_mask.png'):
 
 
 
-# Load the image
-image_path = "refined_image.png"
+# Read the image
+image_path = "refined_image.png"  # Update the path with your image name
 image = cv2.imread(image_path)
+
+# Convert the image to grayscale
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-# Detect the face
+# Load the Haar cascade for face detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# Detect faces in the image
 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+
+if len(faces) == 0:
+    raise ValueError("No faces detected in the image.")
 
 # Extract the forehead region
 for (x, y, w, h) in faces:
-    forehead = image[y:y+h//4, x:x+w]
+    # Ensure the forehead region is within bounds
+    reduction_factor=0.2
+    left_reduction=int(w*reduction_factor)
+    right_reduction=int(w*reduction_factor)
+    forehead = image[y:y + h // 4, x+left_reduction:x + w-right_reduction]
+    # cv2.imwrite("forehead.png",forehead)
+    # print(forehead)
+    break  # Use the first detected face for the forehead
 
-# Use K-Means clustering to find the dominant skin color
+# Convert the forehead to RGB format for clustering
 forehead = cv2.cvtColor(forehead, cv2.COLOR_BGR2RGB)
 forehead_pixels = forehead.reshape(-1, 3)
 forehead_pixels = np.float32(forehead_pixels)
 
-# Define criteria and apply K-Means
+# Define criteria for K-Means clustering
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
 _, labels, centers = cv2.kmeans(forehead_pixels, 1, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
-# Get the dominant color
+# Get the dominant skin color
 skin_color = centers[0].astype(int)
 
-# Define RGB values for the available colors
+# Define a color palette
 color_palette = {
     'black': (0, 0, 0),
     'brown': (139, 69, 19),
@@ -99,7 +117,7 @@ color_palette = {
     'yellow': (255, 255, 0)
 }
 
-# Function to calculate Euclidean distance between two RGB colors
+# Function to calculate Euclidean distance
 def euclidean_distance(color1, color2):
     return np.sqrt((color1[0] - color2[0])**2 + (color1[1] - color2[1])**2 + (color1[2] - color2[2])**2)
 
@@ -114,9 +132,9 @@ def closest_color(requested_color):
             closest_color_name = name
     return closest_color_name
 
-# Find the closest color from the palette
-closest_color_name = ((closest_color(tuple(skin_color))).replace(" ","_")).upper()
-# print(closest_color_name)
+# Find the closest color
+closest_color_name = closest_color(tuple(skin_color)).replace(" ", "_").upper()
+
 
 skin_color_mapping = {
     "BLACK": pa.SkinColor.BLACK,
@@ -133,10 +151,7 @@ chosen_skin_color = skin_color_mapping.get(closest_color_name, pa.SkinColor.LIGH
 # avatar.render_png_file("avt.png")
 
 # hair color code
-import cv2
-import numpy as np
-from sklearn.cluster import KMeans
-from scipy.spatial import distance
+
 
 # Available hair colors in py_avataaars (as RGB)
 AVAILABLE_HAIR_COLORS = {
@@ -168,7 +183,7 @@ def find_closest_color(detected_rgb):
 
 
 # Step 1: Load the image
-image_path = "refined_image.png"  # Update with your image path
+image_path = "image_female.png"  # Update with your image path
 image = cv2.imread(image_path)
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -186,6 +201,7 @@ for (x, y, w, h) in faces:
     # Define the hair region: an area above the face
     hair_region_top = max(0, y - h // 2)
     hair_region = image_rgb[hair_region_top:y, x:x+w]
+    cv.imwrite('hairs.png', hair_region)
 
     if hair_region.size == 0:
         print("No hair region detected.")
@@ -206,7 +222,7 @@ dominant_color = [int(c) for c in dominant_color]
 
 # Step 6: Find the closest available color in py_avataaars
 closest_hair_color = find_closest_color(dominant_color)
-# print(f"Closest Hair Color for py_avataaars: {closest_hair_color}")
+print(f"Closest Hair Color for py_avataaars: {closest_hair_color}")
 
 hair_color_mapping = {
     "Black": pa.HairColor.BLACK,
@@ -493,9 +509,9 @@ image_path = "refined_image.png"  # Replace with your image path
 gender_result, hair_style_result, chosen_top_type = analyze_image(image_path)
 
 # Display the results
-print(f"Detected Gender: {gender_result}")
-print(f"Detected Hair Style: {hair_style_result}")
-print(f"Mapped Top Type: {chosen_top_type}")
+# print(f"Detected Gender: {gender_result}")
+# print(f"Detected Hair Style: {hair_style_result}")
+# print(f"Mapped Top Type: {chosen_top_type}")
 # print(type(chosen_top_type))
 
 
@@ -541,7 +557,7 @@ def analyze_expression_and_map_eyebrows(image_path):
         # Analyze facial expression using DeepFace
         analysis = DeepFace.analyze(img_path=image_path, actions=['emotion'], enforce_detection=False)
         emotion = analysis[0]['dominant_emotion']
-        print(f"Detected emotion: {emotion}")
+        # print(f"Detected emotion: {emotion}")
 
         # Map the detected emotion to an eyebrow type
         eyebrow_key = emotion_to_eyebrow_type.get(emotion, "DEFAULT_NATURAL")
