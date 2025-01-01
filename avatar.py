@@ -201,7 +201,7 @@ for (x, y, w, h) in faces:
     # Define the hair region: an area above the face
     hair_region_top = max(0, y - h // 2)
     hair_region = image_rgb[hair_region_top:y, x:x+w]
-    cv.imwrite('hairs.png', hair_region)
+    # cv.imwrite('hairs.png', hair_region)
 
     if hair_region.size == 0:
         print("No hair region detected.")
@@ -258,25 +258,33 @@ def detect_beard_level(image_path):
     beard_level = "No Beard"
 
     for (x, y, w, h) in faces:
-        # Crop the face region
-        face_region = gray[y:y + h, x:x + w]
+        shift_ratio = int(w*0.5)  # Adjust the value between 0 and 1 for the amount of shift (e.g., 20%)
+        shift=int(w*0.2)
+        shift_pixels = int(w * shift_ratio)
+    
+    # Ensure the new x-coordinate and width are within bounds
+        new_x = x + shift_pixels
+        new_w = w #- shift_pixels if (x + shift_pixels + w) <= gray.shape[1] else w - shift_pixels
         
+        # Crop the face region
+        face_region = gray[y:y + h, x-shift:x+shift_ratio]
+        cv.imwrite("face_Region.png",face_region)
         # Focus on lower half of the face (where beard typically is)
         lower_face_region = face_region[h // 2:h, :]
-        
+        cv.imwrite("lower_face.png",lower_face_region)
         # Use edge detection to highlight beard intensity
         edges = cv2.Canny(lower_face_region, threshold1=50, threshold2=150)
 
         # Calculate beard density
         beard_density = np.sum(edges) / (lower_face_region.size)
-        # print("Beard Density:", beard_density)
+        print("Beard Density:", beard_density)
 
         # Categorize beard density
-        if beard_density < 5.0:
+        if beard_density < 50.0:
             beard_level = "DEFAULT"
-        elif beard_density < 30.0:
+        elif beard_density < 60.0:
             beard_level = "BEARD_LIGHT"
-        elif beard_density < 50.0:
+        elif beard_density < 70.0:
             beard_level = "BEARD_MEDIUM"
         else:
             beard_level = "BEARD_MAJESTIC"
