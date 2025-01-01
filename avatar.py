@@ -268,10 +268,10 @@ def detect_beard_level(image_path):
         
         # Crop the face region
         face_region = gray[y:y + h, x-shift:x+shift_ratio]
-        cv.imwrite("face_Region.png",face_region)
+        # cv.imwrite("face_Region.png",face_region)
         # Focus on lower half of the face (where beard typically is)
         lower_face_region = face_region[h // 2:h, :]
-        cv.imwrite("lower_face.png",lower_face_region)
+        # cv.imwrite("lower_face.png",lower_face_region)
         # Use edge detection to highlight beard intensity
         edges = cv2.Canny(lower_face_region, threshold1=50, threshold2=150)
 
