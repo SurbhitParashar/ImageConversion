@@ -15,61 +15,61 @@ from sklearn.cluster import KMeans
 from scipy.spatial import distance
 
 
-
+image_path_raw = "image_female.png"
 # Load the original image
-img = cv.imread("image_female.png")
-assert img is not None, "File could not be read, check with os.path.exists()"
+# img = cv.imread(image_path_raw)
+# assert img is not None, "File could not be read, check with os.path.exists()"
 
-# Initialize mask and models
-mask = np.zeros(img.shape[:2], np.uint8)
-bgdModel = np.zeros((1, 65), np.float64)
-fgdModel = np.zeros((1, 65), np.float64)
+# # Initialize mask and models
+# mask = np.zeros(img.shape[:2], np.uint8)
+# bgdModel = np.zeros((1, 65), np.float64)
+# fgdModel = np.zeros((1, 65), np.float64)
 
-# Define the initial rectangle for grabCut
-rect = (50, 50, 450, 290)
+# # Define the initial rectangle for grabCut
+# rect = (50, 50, 450, 290)
 
-# Apply grabCut with the initial rectangle
-cv.grabCut(img, mask, rect, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_RECT)
-mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-segmented_img = img * mask2[:, :, np.newaxis]
+# # Apply grabCut with the initial rectangle
+# cv.grabCut(img, mask, rect, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_RECT)
+# mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+# segmented_img = img * mask2[:, :, np.newaxis]
 
-# Save the segmented image as the labeled mask
-cv.imwrite('labeled_mask.png', segmented_img)
+# # Save the segmented image as the labeled mask
+# cv.imwrite('labeled_mask.png', segmented_img)
 
-# Display the result after initial grabCut
-# plt.imshow(segmented_img)
-# plt.title("Initial Segmentation")
-# plt.colorbar()
-# plt.show()
+# # Display the result after initial grabCut
+# # plt.imshow(segmented_img)
+# # plt.title("Initial Segmentation")
+# # plt.colorbar()
+# # plt.show()
 
-# Load the manually labeled mask
-newmask = cv.imread('labeled_mask.png', cv.IMREAD_GRAYSCALE)
-assert newmask is not None, "Labeled mask file could not be read, check with os.path.exists()"
+# # Load the manually labeled mask
+# newmask = cv.imread('labeled_mask.png', cv.IMREAD_GRAYSCALE)
+# assert newmask is not None, "Labeled mask file could not be read, check with os.path.exists()"
 
-# Update the mask based on the labeled mask 
-mask[newmask == 0] = 0
-mask[newmask == 255] = 1
+# # Update the mask based on the labeled mask 
+# mask[newmask == 0] = 0
+# mask[newmask == 255] = 1
 
-# Refine grabCut with the updated mask
-cv.grabCut(img, mask, None, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_MASK)
+# # Refine grabCut with the updated mask
+# cv.grabCut(img, mask, None, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_MASK)
 
-# Create the final mask and apply it to the image
-final_mask = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-refined_img = img * final_mask[:, :, np.newaxis]
+# # Create the final mask and apply it to the image
+# final_mask = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+# refined_img = img * final_mask[:, :, np.newaxis]
 
-# Save the refined image
-cv.imwrite('refined_image.png', refined_img)
+# # Save the refined image
+# cv.imwrite('refined_image.png', refined_img)
 
-# Delete the labeled mask
-if os.path.exists('labeled_mask.png'):
-    os.remove('labeled_mask.png')
+# # Delete the labeled mask
+# if os.path.exists('labeled_mask.png'):
+#     os.remove('labeled_mask.png')
 
 
 
 
 # Read the image
-image_path = "refined_image.png"  # Update the path with your image name
-image = cv2.imread(image_path)
+image_path_refined = "yash.jpg"  # Update the path with your image name
+image = cv2.imread(image_path_refined)
 
 # Convert the image to grayscale
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -183,8 +183,8 @@ def find_closest_color(detected_rgb):
 
 
 # Step 1: Load the image
-image_path = "image_female.png"  # Update with your image path
-image = cv2.imread(image_path)
+ # Update with your image path
+image = cv2.imread(image_path_refined)
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 # Step 2: Detect face in the image using Haar cascade
@@ -240,12 +240,14 @@ hair_color_mapping = {
 chosen_hair_color = hair_color_mapping.get(closest_hair_color, pa.HairColor.BLACK)
 
 
-def detect_beard_level(image_path):
+def detect_beard_level(image_path_refined):
     # Load pre-trained face detection model (Haar cascades or DNN model)
+    
+    
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
     # Load the image
-    img = cv2.imread(image_path)
+    img = cv2.imread(image_path_refined)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Detect faces
@@ -258,26 +260,23 @@ def detect_beard_level(image_path):
     beard_level = "No Beard"
 
     for (x, y, w, h) in faces:
-        shift_ratio = int(w*0.5)  # Adjust the value between 0 and 1 for the amount of shift (e.g., 20%)
-        shift=int(w*0.2)
+        shift_ratio = int(w * 0.5)  # Adjust the value between 0 and 1 for the amount of shift (e.g., 20%)
+        shift = int(w * 0.2)
         shift_pixels = int(w * shift_ratio)
-    
-    # Ensure the new x-coordinate and width are within bounds
-        new_x = x + shift_pixels
-        new_w = w #- shift_pixels if (x + shift_pixels + w) <= gray.shape[1] else w - shift_pixels
-        
+
         # Crop the face region
-        face_region = gray[y:y + h, x-shift:x+shift_ratio]
-        # cv.imwrite("face_Region.png",face_region)
+        face_region = gray[y:y + h, x - shift:x + shift_ratio]
+        # face_region = gray[y:y + h, x:x + w] basic
+        # cv.imwrite("face_Region.png", face_region)
         # Focus on lower half of the face (where beard typically is)
-        lower_face_region = face_region[h // 2:h, :]
-        # cv.imwrite("lower_face.png",lower_face_region)
+        lower_face_region = face_region[h // 3:h:, :]
+        cv.imwrite("lower_face.png", lower_face_region)
         # Use edge detection to highlight beard intensity
         edges = cv2.Canny(lower_face_region, threshold1=50, threshold2=150)
 
         # Calculate beard density
         beard_density = np.sum(edges) / (lower_face_region.size)
-        print("Beard Density:", beard_density)
+        # print("Beard Density:", beard_density)
 
         # Categorize beard density
         if beard_density < 50.0:
@@ -287,7 +286,7 @@ def detect_beard_level(image_path):
         elif beard_density < 70.0:
             beard_level = "BEARD_MEDIUM"
         else:
-            beard_level = "BEARD_MAJESTIC"
+            beard_level = "BEARD_HEAVY"
 
         # Draw rectangle around face and display beard level
         cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
@@ -298,10 +297,10 @@ def detect_beard_level(image_path):
 
 
 # Input image path
-image_path = "refined_image.png"
+
 
 # Detect beard level
-beard_level = detect_beard_level(image_path)
+beard_level = detect_beard_level(image_path_refined)
 # print("Beard Level:", beard_level)
 
 # mapping 
@@ -326,9 +325,9 @@ emotion_to_mouth_type = {
 }
 
 # Detect emotion and map to mouth type
-def detect_mouth_type(image_path):
+def detect_mouth_type(image_path_refined):
     try:
-        analysis = DeepFace.analyze(img_path=image_path, actions=["emotion"])
+        analysis = DeepFace.analyze(img_path=image_path_refined, actions=["emotion"])
         # print("analysis is :",analysis)
 
         dominant_emotion = analysis[0]["dominant_emotion"]
@@ -337,9 +336,9 @@ def detect_mouth_type(image_path):
         return f"Error: {str(e)}"
 
 # Example usage
-image_path = "refined_image.png"  # Replace with your image path
-mouth_type = detect_mouth_type(image_path)
-# print(f"Detected mouth type: {mouth_type}")
+ # Replace with your image path
+mouth_type = detect_mouth_type(image_path_refined)
+print(f"Detected mouth type: {mouth_type}")
 
 # mapping 
 mouth_mapping = {
@@ -426,15 +425,15 @@ hair_style_map = {
     "LONG_HAIR_CURLY": pa.TopType.LONG_HAIR_CURLY,
     "LONG_HAIR_BIG_HAIR": pa.TopType.LONG_HAIR_BIG_HAIR,
     "LONG_HAIR_FRIDA": pa.TopType.LONG_HAIR_FRIDA,
-    "LONG_HAIR_DREADS": pa.TopType.LONG_HAIR_DREADS
+    "LONG_HAIR_DREADS": pa.TopType.LONG_HAIR_DREADS,
 
 }
 
-def detect_gender(image_path):
+def detect_gender(image_path_refined):
     """Detect gender using DeepFace."""
     try:
         # Perform gender analysis
-        analysis = DeepFace.analyze(img_path=image_path, actions=['gender'], enforce_detection=False)
+        analysis = DeepFace.analyze(img_path=image_path_refined, actions=['gender'], enforce_detection=False)
         
         # If analysis returns a list, take the first detected face
         if isinstance(analysis, list):
@@ -453,13 +452,13 @@ def detect_gender(image_path):
     except Exception as e:
         return f"Error detecting gender: {str(e)}"
 
-def detect_hair_style(image_path, gender):
+def detect_hair_style(image_path_refined, gender):
     """Detect hair style based on edge density and gender."""
     try:
         # Load the image
-        image = cv2.imread(image_path)
+        image = cv2.imread(image_path_refined)
         if image is None:
-            return "Error: Unable to read the image. Please check the file path."
+            return "Error: Unable to read the image. Please check the file path.", None
         
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -473,21 +472,20 @@ def detect_hair_style(image_path, gender):
         
         # Analyze hair density in the region
         hair_density = np.sum(hair_region) / (hair_region.shape[0] * hair_region.shape[1])
-        
+        print(f"Hair Density: {hair_density}")  # Debugging
+
         # Select appropriate hair styles based on gender and hair density
         if gender == "Man":
-            if hair_density < 2:
-                return "NO_HAIR", None
-            elif 2.0 <= hair_density < 10.0:
+           
+            if hair_density < 10.0:
                 hair_style = random.choice(SHORT_HAIR_MALE)
             elif 10.0 <= hair_density < 15.0:
                 hair_style = random.choice(MEDIUM_HAIR_MALE)
             else:
                 hair_style = random.choice(LONG_HAIR_MALE)
         elif gender == "Woman":
-            if hair_density < 1:
-                return "NO_HAIR", None
-            elif 1.0 <= hair_density < 4.0:
+            
+            if hair_density < 4.0:
                 hair_style = random.choice(SHORT_HAIR_FEMALE)
             elif 4.0 <= hair_density < 8.0:
                 hair_style = random.choice(MEDIUM_HAIR_FEMALE)
@@ -496,8 +494,13 @@ def detect_hair_style(image_path, gender):
         else:
             return "Gender not detected. Cannot determine hair style.", None
 
+        print(f"Detected Hair Style: {hair_style}")  # Debugging
+
         # Get the corresponding topType from the map
-        topType = hair_style_map.get(hair_style, "Unknown topType")
+        topType = hair_style_map.get(hair_style)
+        if topType is None:
+            print(f"Error: Hair style '{hair_style}' not found in the map.")  # Debugging
+            topType = "Unknown topType"
 
         return hair_style, topType
 
@@ -505,22 +508,21 @@ def detect_hair_style(image_path, gender):
         return f"Error detecting hair style: {str(e)}", None
 
 # To use the functions
-def analyze_image(image_path):
-    gender = detect_gender(image_path)
+def analyze_image(image_path_refined):
+    gender = detect_gender(image_path_refined)
+    # print("Gender:", gender)
     if "Error" not in gender:
-        hair_style, top_type = detect_hair_style(image_path, gender)
+        hair_style, top_type = detect_hair_style(image_path_refined, gender)
+        # print("here",hair_style)
         return gender, hair_style, top_type
     return gender, None, None
 
 # Example usage
-image_path = "refined_image.png"  # Replace with your image path
-gender_result, hair_style_result, chosen_top_type = analyze_image(image_path)
+gender_result, hair_style_result, chosen_top_type = analyze_image(image_path_refined)
 
-# Display the results
-# print(f"Detected Gender: {gender_result}")
-# print(f"Detected Hair Style: {hair_style_result}")
-# print(f"Mapped Top Type: {chosen_top_type}")
-# print(type(chosen_top_type))
+print(f"Detected Gender: {gender_result}")
+print(f"Detected Hair Style: {hair_style_result}")
+print(f"Mapped Top Type: {chosen_top_type}")
 
 
 # choosing eye type 
@@ -560,10 +562,10 @@ eyebrow_type_mapping = {
     "FLAT_NATURAL": pa.EyebrowType.FLAT_NATURAL
 }
 
-def analyze_expression_and_map_eyebrows(image_path):
+def analyze_expression_and_map_eyebrows(image_path_refined):
     try:
         # Analyze facial expression using DeepFace
-        analysis = DeepFace.analyze(img_path=image_path, actions=['emotion'], enforce_detection=False)
+        analysis = DeepFace.analyze(img_path=image_path_refined, actions=['emotion'], enforce_detection=False)
         emotion = analysis[0]['dominant_emotion']
         # print(f"Detected emotion: {emotion}")
 
@@ -576,11 +578,10 @@ def analyze_expression_and_map_eyebrows(image_path):
         return pa.EyebrowType.DEFAULT_NATURAL  # Return a default eyebrow type in case of error
 
 # Load an image and detect facial expression
-image_path = "refined_image.png"  # Replace with your image path
-chosen_eyebrow_type = analyze_expression_and_map_eyebrows(image_path)
+  # Replace with your image path
+chosen_eyebrow_type = analyze_expression_and_map_eyebrows(image_path_refined)
 
 accesories_choice=["DEFAULT",
-"KURT",
 "PRESCRIPTION_01",
 "PRESCRIPTION_02",
 "ROUND",
@@ -601,6 +602,14 @@ accesories_type_map={
 
 chosen_accesories_type=accesories_type_map.get(accesories_type,pa.AccessoriesType.DEFAULT)
 
+# print(chosen_skin_color)
+# print(chosen_beard_level)
+# print(chosen_hair_color)
+# print(chosen_top_type)
+# print(chosen_mouth_type)
+# print(chosen_eye_type)
+# print(chosen_eyebrow_type)
+# print(chosen_accesories_type)
 
 
 # Create an avatar instance
@@ -626,3 +635,4 @@ avatar.render_png_file("avt2.png")
 
 
 svg_code=avatar.render_svg_file("avt2.svg")
+
