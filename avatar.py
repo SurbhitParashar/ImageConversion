@@ -13,51 +13,10 @@ import os
 from deepface import DeepFace
 from sklearn.cluster import KMeans
 from scipy.spatial import distance
-
-
-
-# Load the original image
-# image_path_raw = "surbhit.jpg"
-# img = cv.imread(image_path_raw)
-# assert img is not None, "File could not be read, check with os.path.exists()"
-
-# # Manually select the ROI
-# rect = cv.selectROI("Select ROI", img, fromCenter=False, showCrosshair=True)
-# rect = (int(rect[0]), int(rect[1]), int(rect[2]), int(rect[3]))
-# cv.destroyAllWindows()
-
-# # Initialize mask and models
-# mask = np.zeros(img.shape[:2], np.uint8)
-# bgdModel = np.zeros((1, 65), np.float64)
-# fgdModel = np.zeros((1, 65), np.float64)
-
-# # Apply grabCut with the initial rectangle
-# cv.grabCut(img, mask, rect, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_RECT)
-
-# # Create binary mask
-# mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
-
-# # Refine using multiple iterations
-# for _ in range(3):
-#     cv.grabCut(img, mask, None, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_MASK)
-
-# # Post-process the mask
-# kernel = np.ones((3, 3), np.uint8)
-# final_mask = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
-# final_mask = cv.morphologyEx(final_mask, cv.MORPH_CLOSE, kernel, iterations=2)
-# final_mask = cv.GaussianBlur(final_mask, (5, 5), 0)
-
-# # Apply the mask to the image
-# refined_img = cv.bitwise_and(img, img, mask=final_mask)
-
-# # Save the refined image
-# cv.imwrite("refined_image.png", refined_img)
-
 from rembg import remove
 from PIL import Image
-import io
 
-input_path = "sample_image.jpg"
+input_path = "image_male.png"
 output_path = "refined_image.png"
 
 with open(input_path, "rb") as input_file:
@@ -281,7 +240,7 @@ def detect_beard_level(image_path_refined):
         print("Beard Density:", beard_density)
 
         # Categorize beard density
-        if beard_density < 50.0:
+        if beard_density < 37.0:
             beard_level = "DEFAULT"
         elif beard_density < 60.0:
             beard_level = "BEARD_LIGHT"
