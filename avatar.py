@@ -15,60 +15,62 @@ from sklearn.cluster import KMeans
 from scipy.spatial import distance
 
 
-image_path_raw = "image_female.png"
+
 # Load the original image
+# image_path_raw = "surbhit.jpg"
 # img = cv.imread(image_path_raw)
 # assert img is not None, "File could not be read, check with os.path.exists()"
+
+# # Manually select the ROI
+# rect = cv.selectROI("Select ROI", img, fromCenter=False, showCrosshair=True)
+# rect = (int(rect[0]), int(rect[1]), int(rect[2]), int(rect[3]))
+# cv.destroyAllWindows()
 
 # # Initialize mask and models
 # mask = np.zeros(img.shape[:2], np.uint8)
 # bgdModel = np.zeros((1, 65), np.float64)
 # fgdModel = np.zeros((1, 65), np.float64)
 
-# # Define the initial rectangle for grabCut
-# rect = (50, 50, 450, 290)
-
 # # Apply grabCut with the initial rectangle
 # cv.grabCut(img, mask, rect, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_RECT)
-# mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-# segmented_img = img * mask2[:, :, np.newaxis]
 
-# # Save the segmented image as the labeled mask
-# cv.imwrite('labeled_mask.png', segmented_img)
+# # Create binary mask
+# mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
 
-# # Display the result after initial grabCut
-# # plt.imshow(segmented_img)
-# # plt.title("Initial Segmentation")
-# # plt.colorbar()
-# # plt.show()
+# # Refine using multiple iterations
+# for _ in range(3):
+#     cv.grabCut(img, mask, None, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_MASK)
 
-# # Load the manually labeled mask
-# newmask = cv.imread('labeled_mask.png', cv.IMREAD_GRAYSCALE)
-# assert newmask is not None, "Labeled mask file could not be read, check with os.path.exists()"
+# # Post-process the mask
+# kernel = np.ones((3, 3), np.uint8)
+# final_mask = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
+# final_mask = cv.morphologyEx(final_mask, cv.MORPH_CLOSE, kernel, iterations=2)
+# final_mask = cv.GaussianBlur(final_mask, (5, 5), 0)
 
-# # Update the mask based on the labeled mask 
-# mask[newmask == 0] = 0
-# mask[newmask == 255] = 1
-
-# # Refine grabCut with the updated mask
-# cv.grabCut(img, mask, None, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_MASK)
-
-# # Create the final mask and apply it to the image
-# final_mask = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-# refined_img = img * final_mask[:, :, np.newaxis]
+# # Apply the mask to the image
+# refined_img = cv.bitwise_and(img, img, mask=final_mask)
 
 # # Save the refined image
-# cv.imwrite('refined_image.png', refined_img)
+# cv.imwrite("refined_image.png", refined_img)
 
-# # Delete the labeled mask
-# if os.path.exists('labeled_mask.png'):
-#     os.remove('labeled_mask.png')
+from rembg import remove
+from PIL import Image
+import io
 
+input_path = "sample_image.jpg"
+output_path = "refined_image.png"
 
+with open(input_path, "rb") as input_file:
+    input_data = input_file.read()
+
+output_data = remove(input_data)
+
+with open(output_path, "wb") as output_file:
+    output_file.write(output_data)
 
 
 # Read the image
-image_path_refined = "yash.jpg"  # Update the path with your image name
+image_path_refined = "refined_image.png"  # Update the path with your image name
 image = cv2.imread(image_path_refined)
 
 # Convert the image to grayscale
@@ -270,13 +272,13 @@ def detect_beard_level(image_path_refined):
         # cv.imwrite("face_Region.png", face_region)
         # Focus on lower half of the face (where beard typically is)
         lower_face_region = face_region[h // 3:h:, :]
-        cv.imwrite("lower_face.png", lower_face_region)
+        # cv.imwrite("lower_face.png", lower_face_region)
         # Use edge detection to highlight beard intensity
         edges = cv2.Canny(lower_face_region, threshold1=50, threshold2=150)
 
         # Calculate beard density
         beard_density = np.sum(edges) / (lower_face_region.size)
-        # print("Beard Density:", beard_density)
+        print("Beard Density:", beard_density)
 
         # Categorize beard density
         if beard_density < 50.0:
@@ -366,9 +368,7 @@ SHORT_HAIR_MALE = [
     "SHORT_HAIR_THE_CAESAR",
     "SHORT_HAIR_THE_CAESAR_SIDE_PART",
     "SHORT_HAIR_SHORT_ROUND",
-    "SHORT_HAIR_DREADS_01",
-    "SHORT_HAIR_DREADS_02",
-    "SHORT_HAIR_FRIZZLE"
+    "SHORT_HAIR_DREADS_01"
 ]
 
 MEDIUM_HAIR_MALE = [
@@ -385,8 +385,6 @@ LONG_HAIR_MALE = [
 SHORT_HAIR_FEMALE = [
     "SHORT_HAIR_SHORT_CURLY",
     "SHORT_HAIR_SHORT_FLAT",
-    "SHORT_HAIR_SHORT_WAVED",
-    "SHORT_HAIR_FRIZZLE"
 ]
 
 MEDIUM_HAIR_FEMALE = [
@@ -412,8 +410,6 @@ hair_style_map = {
     "SHORT_HAIR_THE_CAESAR_SIDE_PART": pa.TopType.SHORT_HAIR_THE_CAESAR_SIDE_PART,
     "SHORT_HAIR_SHORT_ROUND": pa.TopType.SHORT_HAIR_SHORT_ROUND,
     "SHORT_HAIR_DREADS_01": pa.TopType.SHORT_HAIR_DREADS_01,
-    "SHORT_HAIR_DREADS_02": pa.TopType.SHORT_HAIR_DREADS_02,
-    "SHORT_HAIR_FRIZZLE": pa.TopType.SHORT_HAIR_FRIZZLE,
     "SHORT_HAIR_SHAGGY_MULLET": pa.TopType.SHORT_HAIR_SHAGGY_MULLET,
     "LONG_HAIR_SHAVED_SIDES": pa.TopType.LONG_HAIR_SHAVED_SIDES,
     "LONG_HAIR_NOT_TOO_LONG": pa.TopType.LONG_HAIR_NOT_TOO_LONG,
@@ -442,6 +438,7 @@ def detect_gender(image_path_refined):
         # Extract gender probabilities
         if 'gender' in analysis:
             gender_probabilities = analysis['gender']
+            print(gender_probabilities)
             # Find the gender with the highest probability
             if gender_probabilities['Man'] > gender_probabilities['Woman']:
                 return "Man"
@@ -485,9 +482,9 @@ def detect_hair_style(image_path_refined, gender):
                 hair_style = random.choice(LONG_HAIR_MALE)
         elif gender == "Woman":
             
-            if hair_density < 4.0:
+            if hair_density < 1.0:
                 hair_style = random.choice(SHORT_HAIR_FEMALE)
-            elif 4.0 <= hair_density < 8.0:
+            elif 1.0 <= hair_density < 1.5:
                 hair_style = random.choice(MEDIUM_HAIR_FEMALE)
             else:
                 hair_style = random.choice(LONG_HAIR_FEMALE)
@@ -610,6 +607,7 @@ chosen_accesories_type=accesories_type_map.get(accesories_type,pa.AccessoriesTyp
 # print(chosen_eye_type)
 # print(chosen_eyebrow_type)
 # print(chosen_accesories_type)
+
 
 
 # Create an avatar instance
