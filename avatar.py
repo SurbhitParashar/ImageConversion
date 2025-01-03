@@ -16,7 +16,7 @@ from scipy.spatial import distance
 from rembg import remove
 from PIL import Image
 
-input_path = "image_male.png"
+input_path = "person.png"
 output_path = "refined_image.png"
 
 with open(input_path, "rb") as input_file:
@@ -558,6 +558,26 @@ accesories_type_map={
 
 chosen_accesories_type=accesories_type_map.get(accesories_type,pa.AccessoriesType.DEFAULT)
 
+# cloth type
+cloth_types=["HOODIE,"
+"BLAZER_SHIRT",
+"BLAZER_SWEATER",
+"COLLAR_SWEATER",
+"GRAPHIC_SHIRT",
+"OVERALL",
+"SHIRT_V_NECK"]
+cloth_type=random.choice(cloth_types)
+cloth_mapping={
+    "HOODIE":pa.ClotheType.HOODIE,
+    "BLAZER_SHIRT":pa.ClotheType.BLAZER_SHIRT,
+    "BLAZER_SWEATER":pa.ClotheType.BLAZER_SWEATER,
+    "COLLAR_SWEATER":pa.ClotheType.COLLAR_SWEATER,
+    "GRAPHIC_SHIRT":pa.ClotheType.GRAPHIC_SHIRT,
+    "OVERALL":pa.ClotheType.OVERALL,
+    "SHIRT_V_NECK":pa.ClotheType.SHIRT_V_NECK
+}
+chosen_cloth_type=cloth_mapping.get(cloth_type,pa.ClotheType.HOODIE)
+
 # print(chosen_skin_color)
 # print(chosen_beard_level)
 # print(chosen_hair_color)
@@ -566,7 +586,7 @@ chosen_accesories_type=accesories_type_map.get(accesories_type,pa.AccessoriesTyp
 # print(chosen_eye_type)
 # print(chosen_eyebrow_type)
 # print(chosen_accesories_type)
-
+print(chosen_cloth_type)
 
 
 # Create an avatar instance
@@ -580,11 +600,8 @@ avatar = pa.PyAvataaar(
     eyebrow_type=chosen_eyebrow_type,
     nose_type=pa.NoseType.DEFAULT,
     accessories_type=chosen_accesories_type,
-    # clothe_shirt_type=pa.ClotheShirtType.DEFAULT,
-    # clothe_type=pa.clothe_type.GRAPHIC_SHIRT,
-    # clothe_color=pa.clothe_color.PINK,
-    # clothe_graphic_type=pa.clothe_graphic_type.BIRD,
-    # clothe_graphic_color=pa.clothe_graphic_color.WHITE
+    clothe_type=chosen_cloth_type,
+    clothe_graphic_type=pa.ClotheGraphicType.PIZZA,
 )
 
 # Render and save the avatar as a PNG file
