@@ -17,7 +17,7 @@ from rembg import remove
 from PIL import Image
 import mediapipe as mp
 
-input_path = "sample6.jpg"
+input_path = "sample8.png"
 output_path = "refined_image.png"
 
 with open(input_path, "rb") as input_file:
@@ -222,79 +222,84 @@ face_mesh.close()
 
 
 
-# Beard level code
 def detect_beard_level(image_path_refined):
-    # Load pre-trained face detection model (Haar cascades or DNN model)
-    
-    
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-
     # Load the image
     img = cv2.imread(image_path_refined)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # Detect faces
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    # Initialize Mediapipe Face Mesh
+    mp_face_mesh = mp.solutions.face_mesh
+    with mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, min_detection_confidence=0.5) as face_mesh:
+        results = face_mesh.process(img_rgb)
 
-    if len(faces) == 0:
-        return "No face detected"
+        if not results.multi_face_landmarks:
+            return "No face detected"
 
-    # Initialize beard intensity levels
-    beard_level = "No Beard"
+        # Initialize beard intensity levels
+        beard_level = "No Beard"
+        h, w, _ = img.shape  # Get image dimensions
 
-    for (x, y, w, h) in faces:
-        shift_ratio = int(w * 0.5)  # Adjust the value between 0 and 1 for the amount of shift (e.g., 20%)
-        shift = int(w * 0.2)
-        shift_pixels = int(w * shift_ratio)
+        for face_landmarks in results.multi_face_landmarks:
+            # Extract coordinates for the lower face region
+            lower_face_points = [152, 377, 400, 378, 379, 365, 397, 288, 361, 323, 324, 91, 181, 146]
+            lower_face_coords = []
 
-        # Crop the face region
-        face_region = gray[y:y + h, x - shift:x + shift_ratio]
-        # face_region = gray[y:y + h, x:x + w] basic
-        # cv.imwrite("face_Region.png", face_region)
-        # Focus on lower half of the face (where beard typically is)
-        lower_face_region = face_region[h // 3:h:, :]
-        # cv.imwrite("lower_face.png", lower_face_region)
-        # Use edge detection to highlight beard intensity
-        edges = cv2.Canny(lower_face_region, threshold1=50, threshold2=150)
+            for point in lower_face_points:
+                x = int(face_landmarks.landmark[point].x * w)
+                y = int(face_landmarks.landmark[point].y * h)
+                lower_face_coords.append((x, y))
 
-        # Calculate beard density
-        beard_density = np.sum(edges) / (lower_face_region.size)
-        print("Beard Density:", beard_density)
+            # Create a mask for the lower face region
+            mask = np.zeros((h, w), dtype=np.uint8)
+            cv2.fillPoly(mask, [np.array(lower_face_coords, dtype=np.int32)], 255)
 
-        # Categorize beard density
-        if beard_density < 37.0:
-            beard_level = "DEFAULT"
-        elif beard_density < 60.0:
-            beard_level = "BEARD_LIGHT"
-        elif beard_density < 70.0:
-            beard_level = "BEARD_MEDIUM"
-        else:
-            beard_level = "BEARD_HEAVY"
+            # Extract the lower face region
+            lower_face_region = cv2.bitwise_and(img, img, mask=mask)
+            gray_lower_face = cv2.cvtColor(lower_face_region, cv2.COLOR_BGR2GRAY)
 
-        # Draw rectangle around face and display beard level
-        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        cv2.putText(img, beard_level, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+            # Edge detection to analyze beard density
+            edges = cv2.Canny(gray_lower_face, threshold1=50, threshold2=150)
 
+            # Calculate beard density
+            beard_density = np.sum(edges) / (np.count_nonzero(mask))
+            print("Beard Density:", beard_density)
+
+            # Categorize beard density
+            if beard_density < 35.0:
+                beard_level = "DEFAULT"
+            elif beard_density < 50.0:
+                beard_level = "BEARD_LIGHT"
+            elif beard_density < 60.0:
+                beard_level = "BEARD_MEDIUM"
+            else:
+                beard_level = "BEARD_HEAVY"
+
+            # Draw a polygon around the lower face region and display beard level
+            cv2.polylines(img, [np.array(lower_face_coords, dtype=np.int32)], isClosed=True, color=(255, 0, 0), thickness=2)
+            cv2.putText(img, beard_level, (lower_face_coords[0][0], lower_face_coords[0][1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+
+    
 
     return beard_level
 
 
-# Input image path
-
 
 # Detect beard level
 beard_level = detect_beard_level(image_path_refined)
-# print("Beard Level:", beard_level)
+print("Beard Level:", beard_level)
 
-# mapping 
+# Beard level mapping
 beard_mapping = {
     "DEFAULT": pa.FacialHairType.DEFAULT,
     "BEARD_LIGHT": pa.FacialHairType.BEARD_LIGHT,
     "BEARD_MEDIUM": pa.FacialHairType.BEARD_MEDIUM,
     "BEARD_MAJESTIC": pa.FacialHairType.BEARD_MAJESTIC
 }
- 
-chosen_beard_level = beard_mapping.get(beard_level, pa.FacialHairType.DEFAULT)
+
+chosen_beard_level = beard_mapping.get(beard_level, "FacialHairType.DEFAULT")
+print("Chosen Beard Level:", chosen_beard_level)
+
 
 # mouth type code
 emotion_to_mouth_type = {
@@ -378,8 +383,7 @@ LONG_HAIR_FEMALE = [
     "LONG_HAIR_CURVY",
     "LONG_HAIR_CURLY",
     "LONG_HAIR_BIG_HAIR",
-    "LONG_HAIR_FRIDA",
-    "LONG_HAIR_DREADS"
+    "LONG_HAIR_FRIDA"
 ]
 
 # Mapping of hair styles to topType (using the name of the hairstyle directly)
@@ -402,7 +406,6 @@ hair_style_map = {
     "LONG_HAIR_CURLY": pa.TopType.LONG_HAIR_CURLY,
     "LONG_HAIR_BIG_HAIR": pa.TopType.LONG_HAIR_BIG_HAIR,
     "LONG_HAIR_FRIDA": pa.TopType.LONG_HAIR_FRIDA,
-    "LONG_HAIR_DREADS": pa.TopType.LONG_HAIR_DREADS,
 
 }
 
