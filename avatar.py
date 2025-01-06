@@ -15,8 +15,9 @@ from sklearn.cluster import KMeans
 from scipy.spatial import distance
 from rembg import remove
 from PIL import Image
+import mediapipe as mp
 
-input_path = "person.png"
+input_path = "sample6.jpg"
 output_path = "refined_image.png"
 
 with open(input_path, "rb") as input_file:
@@ -28,31 +29,43 @@ with open(output_path, "wb") as output_file:
     output_file.write(output_data)
 
 
+# Initialize MediaPipe Face Detection
+mp_face_detection = mp.solutions.face_detection
+mp_drawing = mp.solutions.drawing_utils
+
 # Read the image
 image_path_refined = "refined_image.png"  # Update the path with your image name
 image = cv2.imread(image_path_refined)
 
-# Convert the image to grayscale
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+if image is None:
+    raise ValueError("Image not found. Please check the image path.")
 
-# Load the Haar cascade for face detection
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# Convert the image to RGB for MediaPipe
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# Detect faces in the image
-faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+# Detect faces using MediaPipe
+with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
+    results = face_detection.process(image_rgb)
 
-if len(faces) == 0:
+if not results.detections:
     raise ValueError("No faces detected in the image.")
 
-# Extract the forehead region
-for (x, y, w, h) in faces:
-    # Ensure the forehead region is within bounds
-    reduction_factor=0.2
-    left_reduction=int(w*reduction_factor)
-    right_reduction=int(w*reduction_factor)
-    forehead = image[y:y + h // 4, x+left_reduction:x + w-right_reduction]
-    # cv2.imwrite("forehead.png",forehead)
-    # print(forehead)
+# Extract the forehead region from the first detected face
+for detection in results.detections:
+    # Get bounding box information
+    bboxC = detection.location_data.relative_bounding_box
+    ih, iw, _ = image.shape
+    x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), int(bboxC.width * iw), int(bboxC.height * ih)
+
+    # Define the forehead region (top part of the face)
+    forehead_top = max(0, y - h // 4)  # Move slightly upward for better accuracy
+    forehead_bottom = y + h // 6  # Use top 1/6th of the face as the forehead
+    forehead_left = x + w // 6  # Narrow the forehead region
+    forehead_right = x + (5 * w // 6)
+
+    # Crop the forehead region
+    forehead = image[forehead_top:forehead_bottom, forehead_left:forehead_right]
+    cv2.imwrite("forehead.png", forehead)
     break  # Use the first detected face for the forehead
 
 # Convert the forehead to RGB format for clustering
@@ -96,7 +109,7 @@ def closest_color(requested_color):
 # Find the closest color
 closest_color_name = closest_color(tuple(skin_color)).replace(" ", "_").upper()
 
-
+# Map the skin color to pa.SkinColor
 skin_color_mapping = {
     "BLACK": pa.SkinColor.BLACK,
     "BROWN": pa.SkinColor.BROWN,
@@ -107,27 +120,30 @@ skin_color_mapping = {
     "YELLOW": pa.SkinColor.YELLOW
 }
 
-chosen_skin_color = skin_color_mapping.get(closest_color_name, pa.SkinColor.LIGHT) 
+# Choose the corresponding skin color
+chosen_skin_color = skin_color_mapping.get(closest_color_name, pa.SkinColor.LIGHT)
 
-# avatar.render_png_file("avt.png")
+# Output the result
+print(f"Detected dominant skin color: {closest_color_name}")
+print(f"Mapped skin color to: {chosen_skin_color}")
 
 # hair color code
 
 
+
 # Available hair colors in py_avataaars (as RGB)
 AVAILABLE_HAIR_COLORS = {
-    "Black": (0, 0, 0),                 # Black
-    "Brown_Dark": (101, 67, 33),        # Dark Brown
-    "Brown": (139, 69, 19),             # Brown
-    "Blonde": (250, 240, 190),          # Blonde
-    "Auburn": (179, 101, 56),           # Auburn (reddish brown)
-    "Blonde_Golden": (255, 223, 138),   # Blonde Golden (light golden blonde)
-    "Pastel_Pink": (255, 182, 193),     # Pastel Pink
-    "Platinum": (229, 228, 226),        # Platinum Blonde (light grayish blonde)
-    "Red": (255, 0, 0),                 # Red
-    "Silver_Gray": (192, 192, 192),     # Silver Gray
+    "Black": (0, 0, 0),
+    "Brown_Dark": (101, 67, 33),
+    "Brown": (139, 69, 19),
+    "Blonde": (250, 240, 190),
+    "Auburn": (179, 101, 56),
+    "Blonde_Golden": (255, 223, 138),
+    "Pastel_Pink": (255, 182, 193),
+    "Platinum": (229, 228, 226),
+    "Red": (255, 0, 0),
+    "Silver_Gray": (192, 192, 192),
 }
-
 
 def find_closest_color(detected_rgb):
     """Find the closest available color based on Euclidean distance."""
@@ -143,64 +159,70 @@ def find_closest_color(detected_rgb):
     return closest_color_name
 
 
+# Initialize MediaPipe Face Mesh
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
+
 # Step 1: Load the image
- # Update with your image path
 image = cv2.imread(image_path_refined)
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# Step 2: Detect face in the image using Haar cascade
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5)
+# Step 2: Detect face and landmarks using MediaPipe
+results = face_mesh.process(image_rgb)
 
-if len(faces) == 0:
+if not results.multi_face_landmarks:
     print("No face detected.")
     exit()
 
-# Step 3: Extract the hair region (above the face)
-for (x, y, w, h) in faces:
-    # Define the hair region: an area above the face
-    hair_region_top = max(0, y - h // 2)
-    hair_region = image_rgb[hair_region_top:y, x:x+w]
-    # cv.imwrite('hairs.png', hair_region)
+# Step 3: Extract the hair region based on face landmarks
+for face_landmarks in results.multi_face_landmarks:
+    # Use specific landmarks to define the hair region (above the forehead)
+    # Forehead landmarks (e.g., 10, 338, 297, etc.)
+    forehead_landmarks = [10, 338, 297, 332, 284]
+
+    # Calculate the bounding box for the hair region
+    forehead_points = [(int(landmark.x * image.shape[1]), int(landmark.y * image.shape[0]))
+                       for i, landmark in enumerate(face_landmarks.landmark) if i in forehead_landmarks]
+    
+    x_coords = [pt[0] for pt in forehead_points]
+    y_coords = [pt[1] for pt in forehead_points]
+
+    # Expand the region above the forehead
+    hair_region_top = max(0, min(y_coords) - (max(y_coords) - min(y_coords)) // 2)
+    hair_region_bottom = min(image.shape[0], min(y_coords))
+    hair_region_left = max(0, min(x_coords) - (max(x_coords) - min(x_coords)) // 2)
+    hair_region_right = min(image.shape[1], max(x_coords) + (max(x_coords) - min(x_coords)) // 2)
+
+    hair_region = image_rgb[hair_region_top:hair_region_bottom, hair_region_left:hair_region_right]
+    cv2.imwrite('hair_region_detected.png', hair_region)
 
     if hair_region.size == 0:
         print("No hair region detected.")
         exit()
 
-# Step 4: Preprocess the hair region for color analysis
-hair_pixels = hair_region.reshape((-1, 3))  # Flatten the region into (R, G, B) pixels
-hair_pixels = np.float32(hair_pixels)
+    # Step 4: Preprocess the hair region for color analysis
+    hair_pixels = hair_region.reshape((-1, 3))  # Flatten the region into (R, G, B) pixels
+    hair_pixels = np.float32(hair_pixels)
 
-# Step 5: Use K-Means to find the dominant color in the hair region
-k = 1  # Number of dominant colors to detect
-kmeans = KMeans(n_clusters=k, random_state=0)
-kmeans.fit(hair_pixels)
+    # Step 5: Use K-Means to find the dominant color in the hair region
+    k = 1  # Number of dominant colors to detect
+    kmeans = KMeans(n_clusters=k, random_state=0)
+    kmeans.fit(hair_pixels)
 
-# Get the dominant color and convert to integer
-dominant_color = kmeans.cluster_centers_[0]
-dominant_color = [int(c) for c in dominant_color]
+    # Get the dominant color and convert to integer
+    dominant_color = kmeans.cluster_centers_[0]
+    dominant_color = [int(c) for c in dominant_color]
 
-# Step 6: Find the closest available color in py_avataaars
-closest_hair_color = find_closest_color(dominant_color)
-print(f"Closest Hair Color for py_avataaars: {closest_hair_color}")
+    # Step 6: Find the closest available color in py_avataaars
+    chosen_hair_color = find_closest_color(dominant_color)
+    print(f"Closest Hair Color for py_avataaars: {chosen_hair_color}")
 
-hair_color_mapping = {
-    "Black": pa.HairColor.BLACK,
-    "Brown_Dark": pa.HairColor.BROWN_DARK,
-    "Brown": pa.HairColor.BROWN,
-    "Blonde": pa.HairColor.BLONDE,
-    "Auburn": pa.HairColor.AUBURN,
-    "Blonde_Golden": pa.HairColor.BLONDE_GOLDEN,
-    "Pastel_Pink": pa.HairColor.PASTEL_PINK,
-    "Platinum": pa.HairColor.PLATINUM,
-    "Red": pa.HairColor.RED,
-    "Silver_Gray": pa.HairColor.SILVER_GRAY
-}
-
-chosen_hair_color = hair_color_mapping.get(closest_hair_color, pa.HairColor.BLACK)
+# Clean up
+face_mesh.close()
 
 
+
+# Beard level code
 def detect_beard_level(image_path_refined):
     # Load pre-trained face detection model (Haar cascades or DNN model)
     
@@ -578,14 +600,14 @@ cloth_mapping={
 }
 chosen_cloth_type=cloth_mapping.get(cloth_type,pa.ClotheType.HOODIE)
 
-# print(chosen_skin_color)
-# print(chosen_beard_level)
-# print(chosen_hair_color)
-# print(chosen_top_type)
-# print(chosen_mouth_type)
-# print(chosen_eye_type)
-# print(chosen_eyebrow_type)
-# print(chosen_accesories_type)
+print(chosen_skin_color)
+print(chosen_beard_level)
+print(chosen_hair_color)
+print(chosen_top_type)
+print(chosen_mouth_type)
+print(chosen_eye_type)
+print(chosen_eyebrow_type)
+print(chosen_accesories_type)
 print(chosen_cloth_type)
 
 
@@ -601,7 +623,7 @@ avatar = pa.PyAvataaar(
     nose_type=pa.NoseType.DEFAULT,
     accessories_type=chosen_accesories_type,
     clothe_type=chosen_cloth_type,
-    clothe_graphic_type=pa.ClotheGraphicType.PIZZA,
+    # clothe_graphic_type=pa.ClotheGraphicType.PIZZA,
 )
 
 # Render and save the avatar as a PNG file

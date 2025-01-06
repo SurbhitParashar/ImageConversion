@@ -1,8 +1,10 @@
 tf.py
 .gitignore
-image_female.png
-image_male.png
 refined_image.png
-face_Region.png
-lower_face.png
+sample1.png
+sample2.png
+sample3.png
+sample4.png
+sample5.jpg
+sample6.jpg
 aiEnv/
