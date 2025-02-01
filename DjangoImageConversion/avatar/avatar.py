@@ -17,7 +17,7 @@ from rembg import remove
 from PIL import Image
 import mediapipe as mp
 
-input_path = "sample8.png"
+input_path = "sample9.jpg"
 output_path = "refined_image.png"
 
 with open(input_path, "rb") as input_file:
